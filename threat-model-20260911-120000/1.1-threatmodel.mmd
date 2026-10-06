@@ -1,0 +1,60 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#ffffff', 'lineColor': '#666666' }}}%%
+flowchart LR
+    classDef process fill:#6baed6,stroke:#2171b5,stroke-width:2px,color:#000000
+    classDef external fill:#fdae61,stroke:#d94701,stroke-width:2px,color:#000000
+    classDef datastore fill:#74c476,stroke:#238b45,stroke-width:2px,color:#000000
+
+    EndUser["End User"]:::external
+    Operator["Operator"]:::external
+    FirebaseAuth["FirebaseAuth"]:::external
+
+    subgraph Browser["Browser (SPA)"]
+        AppRoutes(("AppRoutes")):::process
+        AuthProvider(("AuthProvider")):::process
+        LoginUser(("LoginUser")):::process
+        FirebaseClient(("FirebaseClient")):::process
+        MainPage(("MainPage")):::process
+        Dashboard(("Dashboard")):::process
+        SummaryReport(("SummaryReport")):::process
+        OrderDetails(("OrderDetails")):::process
+        LocalStorage[("LocalStorage")]:::datastore
+    end
+
+    subgraph FirebaseBackend["Firebase Project (celcomdigi-portal)"]
+        FirebaseHosting(("FirebaseHosting")):::process
+        CloudFunctions(("CloudFunctions")):::process
+        Firestore[("Firestore")]:::datastore
+        FirebaseStorage[("FirebaseStorage")]:::datastore
+    end
+
+    subgraph OperatorWorkstation["Operator Workstation"]
+        MigrateHeadOfCommercial(("MigrateHeadOfCommercial")):::process
+    end
+
+    EndUser <-->|"DF01: Loads SPA bundle (HTTPS)"| FirebaseHosting
+    EndUser <-->|"DF02: Credentials entry"| LoginUser
+    LoginUser <-->|"DF03: Sign-in (HTTPS)"| FirebaseAuth
+    AuthProvider <-->|"DF04: Auth state (HTTPS)"| FirebaseAuth
+    AuthProvider <-->|"DF05: getMyProfile, updateMyDepartment (HTTPS)"| CloudFunctions
+    AuthProvider <-->|"DF06: Fallback profile read (HTTPS, denied by rules)"| Firestore
+    FirebaseClient <-->|"DF07: SDK init (HTTPS)"| FirebaseAuth
+    EndUser <-->|"DF08: Browse requests"| MainPage
+    EndUser <-->|"DF09: Enter service line items"| Dashboard
+    EndUser <-->|"DF10: Review and confirm"| SummaryReport
+    EndUser <-->|"DF11: Approve, reject, submit, withdraw"| OrderDetails
+    AppRoutes <-->|"DF12: Draft persistence"| LocalStorage
+    AppRoutes <-->|"DF13: createOrder, deleteOrder, listOrders (HTTPS)"| CloudFunctions
+    OrderDetails <-->|"DF14: submitForApproval, withdrawFromReview, approveOrder, rejectOrder (HTTPS)"| CloudFunctions
+    Dashboard <-->|"DF15: Attachment upload and delete (HTTPS)"| FirebaseStorage
+    EndUser <-->|"DF16: Direct attachment download via tokenized URL"| FirebaseStorage
+    CloudFunctions <-->|"DF17: Admin SDK reads and writes"| Firestore
+    CloudFunctions <-->|"DF18: ID token verification"| FirebaseAuth
+    Operator <-->|"DF19: Runs migration script"| MigrateHeadOfCommercial
+    Operator <-->|"DF20: Deploys bundle and rules"| FirebaseHosting
+    MigrateHeadOfCommercial <-->|"DF21: Bulk order rewrite (Admin SDK)"| Firestore
+
+    style Browser fill:none,stroke:#e31a1c,stroke-width:3px,stroke-dasharray: 5 5
+    style FirebaseBackend fill:none,stroke:#e31a1c,stroke-width:3px,stroke-dasharray: 5 5
+    style OperatorWorkstation fill:none,stroke:#e31a1c,stroke-width:3px,stroke-dasharray: 5 5
+
+    linkStyle default stroke:#666666,stroke-width:2px

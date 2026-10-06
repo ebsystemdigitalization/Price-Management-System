@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#ffffff', 'lineColor': '#666666' }}}%%
+flowchart LR
+    classDef process fill:#6baed6,stroke:#2171b5,stroke-width:2px,color:#000000
+    classDef external fill:#fdae61,stroke:#d94701,stroke-width:2px,color:#000000
+    classDef datastore fill:#74c476,stroke:#238b45,stroke-width:2px,color:#000000
+
+    EndUser["End User"]:::external
+    Operator["Operator"]:::external
+    FirebaseAuth["Firebase Authentication"]:::external
+
+    subgraph Browser["Browser (SPA)"]
+        LoginUser(("LoginUser")):::process
+        AuthProvider(("AuthProvider")):::process
+        SpaScreens(("SPA Screens<br/>(AppRoutes, MainPage, Dashboard,<br/>SummaryReport, OrderDetails, FirebaseClient)")):::process
+        LocalStorage[("LocalStorage")]:::datastore
+    end
+
+    subgraph FirebaseBackend["Firebase Project"]
+        FirebaseHosting(("FirebaseHosting")):::process
+        CloudFunctions(("CloudFunctions")):::process
+        Firestore[("Firestore")]:::datastore
+        FirebaseStorage[("FirebaseStorage")]:::datastore
+    end
+
+    subgraph OperatorWorkstation["Operator Workstation"]
+        MigrateHeadOfCommercial(("MigrateHeadOfCommercial")):::process
+    end
+
+    EndUser <-->|"SDF01: Loads SPA bundle over HTTPS"| FirebaseHosting
+    EndUser <-->|"SDF02: Credentials entry"| LoginUser
+    LoginUser <-->|"SDF03: Email/password sign-in"| FirebaseAuth
+    AuthProvider <-->|"SDF04: Auth state and profile resolution"| FirebaseAuth
+    AuthProvider <-->|"SDF05: getMyProfile, updateMyDepartment"| CloudFunctions
+    EndUser <-->|"SDF06: Request entry, review and decisions"| SpaScreens
+    SpaScreens <-->|"SDF07: Draft persistence"| LocalStorage
+    SpaScreens <-->|"SDF08: All order and workflow callables"| CloudFunctions
+    SpaScreens <-->|"SDF09: Attachment upload and delete"| FirebaseStorage
+    EndUser <-->|"SDF10: Tokenized attachment download"| FirebaseStorage
+    CloudFunctions <-->|"SDF11: Admin SDK reads and writes"| Firestore
+    CloudFunctions <-->|"SDF12: ID token verification"| FirebaseAuth
+    Operator <-->|"SDF13: Runs migration script"| MigrateHeadOfCommercial
+    Operator <-->|"SDF14: Deploys bundle and rules"| FirebaseHosting
+    MigrateHeadOfCommercial <-->|"SDF15: Bulk order rewrite"| Firestore
+
+    style Browser fill:none,stroke:#e31a1c,stroke-width:3px,stroke-dasharray: 5 5
+    style FirebaseBackend fill:none,stroke:#e31a1c,stroke-width:3px,stroke-dasharray: 5 5
+    style OperatorWorkstation fill:none,stroke:#e31a1c,stroke-width:3px,stroke-dasharray: 5 5
+
+    linkStyle default stroke:#666666,stroke-width:2px

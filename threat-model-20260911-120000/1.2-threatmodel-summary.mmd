@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#ffffff', 'lineColor': '#666666' }}}%%
+flowchart LR
+    classDef process fill:#6baed6,stroke:#2171b5,stroke-width:2px,color:#000000
+    classDef external fill:#fdae61,stroke:#d94701,stroke-width:2px,color:#000000
+    classDef datastore fill:#74c476,stroke:#238b45,stroke-width:2px,color:#000000
+
+    EndUser["End User"]:::external
+    Operator["Operator"]:::external
+    FirebaseAuth["FirebaseAuth"]:::external
+
+    subgraph Browser["Browser (SPA)"]
+        LoginUser(("LoginUser")):::process
+        AuthProvider(("AuthProvider")):::process
+        AppScreens(("App Screens<br/>(AppRoutes, FirebaseClient, MainPage, SummaryReport)")):::process
+        Dashboard(("Dashboard")):::process
+        OrderDetails(("OrderDetails")):::process
+        LocalStorage[("LocalStorage")]:::datastore
+    end
+
+    subgraph FirebaseBackend["Firebase Project (celcomdigi-portal)"]
+        FirebaseHosting(("FirebaseHosting")):::process
+        CloudFunctions(("CloudFunctions")):::process
+        Firestore[("Firestore")]:::datastore
+        FirebaseStorage[("FirebaseStorage")]:::datastore
+    end
+
+    subgraph OperatorWorkstation["Operator Workstation"]
+        MigrateHeadOfCommercial(("MigrateHeadOfCommercial")):::process
+    end
+
+    EndUser <-->|"SDF01: Loads SPA bundle"| FirebaseHosting
+    EndUser <-->|"SDF02: Credentials entry"| LoginUser
+    LoginUser <-->|"SDF03: Sign-in"| FirebaseAuth
+    AuthProvider <-->|"SDF04: Auth state"| FirebaseAuth
+    AuthProvider <-->|"SDF05: Profile lookup"| CloudFunctions
+    AuthProvider <-->|"SDF06: Fallback profile read (denied)"| Firestore
+    EndUser <-->|"SDF07: Browse, review, confirm"| AppScreens
+    AppScreens <-->|"SDF08: Order CRUD and SDK init"| CloudFunctions
+    AppScreens <-->|"SDF09: Draft persistence"| LocalStorage
+    EndUser <-->|"SDF10: Enter service line items"| Dashboard
+    Dashboard <-->|"SDF11: Attachment upload and delete"| FirebaseStorage
+    EndUser <-->|"SDF12: Approve, reject, submit, withdraw"| OrderDetails
+    OrderDetails <-->|"SDF13: Approval workflow actions"| CloudFunctions
+    EndUser <-->|"SDF14: Direct attachment download (tokenized URL)"| FirebaseStorage
+    CloudFunctions <-->|"SDF15: Admin SDK reads and writes"| Firestore
+    CloudFunctions <-->|"SDF16: ID token verification"| FirebaseAuth
+    Operator <-->|"SDF17: Runs migration script"| MigrateHeadOfCommercial
+    Operator <-->|"SDF18: Deploys bundle and rules"| FirebaseHosting
+    MigrateHeadOfCommercial <-->|"SDF19: Bulk order rewrite"| Firestore
+
+    style Browser fill:none,stroke:#e31a1c,stroke-width:3px,stroke-dasharray: 5 5
+    style FirebaseBackend fill:none,stroke:#e31a1c,stroke-width:3px,stroke-dasharray: 5 5
+    style OperatorWorkstation fill:none,stroke:#e31a1c,stroke-width:3px,stroke-dasharray: 5 5
+
+    linkStyle default stroke:#666666,stroke-width:2px
